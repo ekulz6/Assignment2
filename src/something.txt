@@ -1,0 +1,431 @@
+package guiInterface;
+
+import java.awt.Dimension;
+import java.awt.HeadlessException;
+import java.awt.Point;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+import java.io.IOException;
+import java.util.ArrayList;
+
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JTabbedPane;
+import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
+
+
+// Importing user libraries
+import item.Item;
+import stock.Stock;
+import csvfilemanagement.FolderReader;
+import csvfilemanagement.CSVRead;
+
+public class MainWindow extends JFrame implements ActionListener, Runnable {
+
+
+	private static final long serialVersionUID = -7031008862559936404L;
+	public static final int WIDTH = 600;
+	public static final int HEIGHT = 900;
+	private float totalCapital = 100000;
+	ArrayList<String> combolist;
+	private ArrayList<JLabel> itemLabelList, itemCurrentStockList;
+	private JComboBox<?> stockComboBox;
+	JPanel panel1, panel2;
+	private Item itemList;
+	private JTextField newOrderField;
+	private FolderReader FR;
+	//private CSVRead CR;
+	//private Stock stockList1, stockList2, stockList3;
+
+	private ArrayList<Stock> listOfStock;
+
+	JTabbedPane pane;
+
+	/**
+	 * Constructor for MainWindow class that calls the constructor of parent class JFrame
+	 * @param title - Creates the JFrame with the specified string title.
+	 * @throws HeadlessException
+	 */
+	public MainWindow(String title) throws HeadlessException {
+		super(title);
+
+	}
+
+
+	/**
+	 * Constructor for the MainWindow class that creates and initializes the main entry point
+	 * for the application
+	 *
+	 *
+	 */
+	public MainWindow() {
+
+		super("Inventory Management Application");
+		listOfStock = new ArrayList<Stock>();
+
+		try {
+			itemList = new Item();
+
+			listOfStock.add(new Stock("Inventory"));
+			/*
+			listOfStock.add(new Stock("Order1"));
+			listOfStock.add(new Stock("Order2"));*/
+
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		listOfStock.get(0).setupInitialStock();
+		//listOfStock.get(1).addStock("beans", 50);
+		//stockList2.
+
+		setDefaultCloseOperation(EXIT_ON_CLOSE);
+
+        pane = new JTabbedPane();
+
+        stockTab();
+
+        truckTab();
+
+
+        getContentPane().add(pane);
+
+        // Display the window.
+        setPreferredSize(new Dimension(WIDTH, HEIGHT));
+        setLocation(new Point(100, 100));
+        pack();
+        setVisible(true);
+	}
+
+
+	/**
+	 * Creates the "Financial" tab panel for the panel at the top of the window
+	 */
+	private void financialTab() {
+		JLabel capitalTextLabel, capitalAmountLabel, CALine1;
+
+
+
+        panel1 = new JPanel();
+        panel1.setLayout(null);
+
+
+        capitalTextLabel = createLabel("Total Capital:", 0,10);
+        capitalAmountLabel = createLabel("$" + String.valueOf(totalCapital), 0, 30);
+        CALine1 = createLabel("-------------------------------", 0, 50);
+
+		//System.out.println(itemLabelList.size());
+
+		//System.out.println(itemLabelList);
+        //Tab code
+
+        panel1.add(capitalTextLabel);
+        panel1.add(capitalAmountLabel);
+        panel1.add(CALine1);
+
+
+        pane.add("Financial", panel1);
+	}
+
+
+	/**
+	 * Creates the "Stock" tab panel for the panel at the top of the window
+	 */
+	private void stockTab() {
+
+
+        panel2 = new JPanel();
+        panel2.setLayout(null);
+
+        combolist = new ArrayList<String>();
+
+
+		FR = new FolderReader();
+
+		combolist = new ArrayList<String>();
+
+		combolist.addAll(FR.getAllFiles());
+		combolist.remove(0);
+		combolist.remove(0);
+		//System.out.println(combolist);
+
+
+		//System.out.println(combolist);
+
+		try {
+			for (int i = 0; i < combolist.size(); i++) {
+					CSVRead CR = new CSVRead(combolist.get(i));
+					listOfStock.add(new Stock(combolist.get(i)));
+					ArrayList<ArrayList<String>> fileList = new ArrayList<ArrayList<String>>();
+					fileList.addAll(CR.readFile());
+					//CR.readFile();
+			}
+
+
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+
+        stockComboBox = new JComboBox<Object>(combolist.toArray());
+        Dimension size = stockComboBox.getPreferredSize();
+        stockComboBox.setBounds(80, 10, size.width +50, size.height + 10);
+
+
+        stockComboBox.setActionCommand("comboBox");
+        stockComboBox.addActionListener(this);
+
+
+        JLabel comboBoxLabel = createLabel("Select Order:", 0, 20);
+        JLabel stockLabel = createLabel("Current Stock", 125, 50);
+
+        JButton itemListButton = createButton("List of Items", 0, HEIGHT - 100);
+        itemListButton.setActionCommand("itemButton");
+        itemListButton.addActionListener(this);
+
+
+        //System.out.println(stockList1.searchStock("dgasg"));
+
+
+        pane.add("Items/Stock", panel2);
+
+
+
+		itemLabelList = new ArrayList<JLabel>();
+		itemCurrentStockList = new ArrayList<JLabel>();
+
+		for (int i = 0; i < itemList.getItemNames().size(); i++) {
+			itemLabelList.add(new JLabel());
+
+			itemCurrentStockList.add(new JLabel());
+
+		}
+
+
+
+    	int y_axis = 80;
+        for (int j = 0; j < itemList.getItemNames().size(); j++) {
+
+        	itemLabelList.set(j, createLabel(itemList.getItemNames().get(j), 0, y_axis));
+
+        	String currentStockLabel = "";
+        	int currentStock = listOfStock.get(0).getStockQuantity(itemList.getItemNames().get(j));
+        	if (currentStock <= 0) {
+        		currentStockLabel = "N/A";
+        	}
+        	else {
+        		currentStockLabel = Integer.toString(currentStock);
+        	}
+
+        	itemCurrentStockList.set(j, createLabel(currentStockLabel, 150, y_axis));
+
+
+
+        	panel2.add(itemLabelList.get(j));
+
+        	panel2.add(itemCurrentStockList.get(j));
+
+
+        	y_axis += 30;
+        	//sss
+        }
+
+        //panel2.add(stockLabelTest);
+
+        JButton loadCSVButton = createButton("Load CSVs", 275, 35);
+        loadCSVButton.setActionCommand("loadCSVs");
+        loadCSVButton.addActionListener(this);
+
+
+        JButton saveOrder = createButton("Save Order", 375, 35);
+
+
+		JButton newOrderButton = createButton("New Order", 275, 5);
+		newOrderButton.setActionCommand("newOrderButton");
+		newOrderButton.addActionListener(this);
+
+        panel2.add(saveOrder);
+        panel2.add(loadCSVButton);
+        panel2.add(stockLabel);
+        panel2.add(itemListButton);
+        panel2.add(stockComboBox);
+        panel2.add(comboBoxLabel);
+        panel2.add(newOrderButton);
+	}
+
+	/**
+	 * Creates the "Truck" tab panel for the panel at the top of the window
+	 */
+
+	private void truckTab() {
+		JPanel panel3 = new JPanel();
+		pane.add("Trucks/Manifest", panel3);
+	}
+
+	/**
+	 * Creates the "Orders" tab panel for the panel at the top of the window
+	 */
+	private void ordersTab() {
+		JPanel panel4 = new JPanel();
+		panel4.setLayout(null);
+		pane.add("Orders", panel4);
+		/*
+        JButton itemListButton = createButton("List of Items", 0, HEIGHT - 100);
+        itemListButton.setActionCommand("itemButton");
+        itemListButton.addActionListener(this);
+		*/
+
+
+		JButton newOrderButton = createButton("New Order", 10, 10);
+		newOrderButton.setActionCommand("newOrderButton");
+		newOrderButton.addActionListener(this);
+		/*
+		JLabel newOrderLabel = createLabel("New Order Name:  ", 10, 10);
+
+
+		newOrderField = new JTextField(20);
+		Dimension size = newOrderField.getPreferredSize();
+		newOrderField.setBounds(10, 50, size.width, size.height);
+
+
+
+
+		panel4.add(newOrderField);
+		panel4.add(newOrderLabel); */
+		panel4.add(newOrderButton);
+
+	}
+
+
+	private void comboBoxLabelUpdate() {
+
+        for (int j = 0; j < itemList.getItemNames().size(); j++) {
+
+
+        	int newStock = listOfStock.get(stockComboBox.getSelectedIndex()).getStockQuantity(itemList.getItemList().get(j).get(0));
+
+
+        	if (newStock > 0) itemCurrentStockList.get(j).setText(Integer.toString(newStock));
+        	else itemCurrentStockList.get(j).setText("N/A");
+
+        }
+
+	}
+
+
+
+	private JLabel createLabel(String text,int x_pos, int y_pos) {
+
+		JLabel jl = new JLabel(text);
+		Dimension size = jl.getPreferredSize();
+		jl.setBounds(x_pos, y_pos, size.width, size.height);
+		return jl;
+
+	}
+
+	/**
+	 * Method that creates buttons on the main window
+	 * @param text - The name of the button
+	 * @param x_pos - The x position of the button on the window
+	 * @param y_pos - The y position of the button on the window
+	 * @return - Returns the created button with the preferred size and position
+	 */
+	private JButton createButton(String text, int x_pos, int y_pos) {
+
+		JButton jb = new JButton(text);
+		Dimension size = jb.getPreferredSize();
+		jb.setBounds(x_pos, y_pos, size.width, size.height);
+		return jb;
+	}
+
+
+	private void stockBoxUpdate() {
+
+
+		/*
+		 *
+		combolist = new ArrayList<String>();
+        combolist.add(listOfStock.get(0).getStockName());
+        combolist.add(listOfStock.get(1).getStockName());
+        combolist.add(listOfStock.get(2).getStockName());
+        //combolist.add("Bird4");
+
+
+        stockComboBox = new JComboBox<Object>(combolist.toArray());
+		 *
+		 */
+
+		FR = new FolderReader();
+
+		combolist = new ArrayList<String>();
+
+		combolist.addAll(FR.getAllFiles());
+
+		//System.out.println(combolist);
+
+		try {
+
+
+			for (int i = 2; i < combolist.size(); i++) {
+				CSVRead CR = new CSVRead(combolist.get(i));
+				System.out.println(CR.readFile());
+
+			}
+
+
+
+
+
+
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+
+	@Override
+	public void run() {
+		//new MainWindow();
+
+	}
+
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		if(e.getActionCommand().equals("itemButton")) {
+			new ItemWindow(itemList.getItemList());
+		}
+
+		else if (e.getActionCommand().equals("comboBox")) {
+			comboBoxLabelUpdate();
+		}
+
+		else if (e.getActionCommand().equals("newOrderButton")) {
+			new NewOrder(itemList.getItemList());
+		}
+
+		else if (e.getActionCommand().equals("loadCSVs")) {
+			stockBoxUpdate();
+		}
+	}
+
+	public static void main(String[] args) {
+
+		JFrame.setDefaultLookAndFeelDecorated(true);
+
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                new MainWindow();
+            }
+        });
+
+	}
+}
